@@ -129,14 +129,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 46px;
     cursor: pointer;
     user-select: none;
     position: relative;
-    line-height: 1;
     transition: filter 0.08s;
+    overflow: visible;
   }
-  .sq:hover { filter: brightness(1.12); }
+  .sq:hover { filter: brightness(1.10); }
   .sq.light { background: var(--light-sq); }
   .sq.dark  { background: var(--dark-sq); }
   .sq.selected { background: var(--select-sq) !important; }
@@ -159,14 +158,19 @@
     pointer-events: none;
   }
 
-  .piece.white {
-    color: #fff;
-    text-shadow: 0 0 3px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  .piece-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    position: relative;
+    z-index: 1;
   }
-  .piece.black {
-    color: #1a1a1a;
-    text-shadow: 0 0 2px rgba(255,255,255,0.4);
+  .piece-svg svg {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+    overflow: visible;
   }
+  .sq.move::after, .sq.capture::after { z-index: 2; }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -310,13 +314,14 @@
     margin-bottom: 12px;
   }
   .promo-box div {
-    width: 64px; height: 64px; font-size: 44px;
+    width: 72px; height: 72px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     background: var(--panel-2);
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: border-color 0.12s, background 0.12s;
+    overflow: hidden;
   }
   .promo-box div:hover {
     border-color: var(--adobe-red);
@@ -405,10 +410,117 @@
 <script>
 // ---------- Board representation ----------
 // Pieces: "wP","wN","wB","wR","wQ","wK" / "bP",... ; "" = empty
-const GLYPH = {
-  wK:"♔", wQ:"♕", wR:"♖", wB:"♗", wN:"♘", wP:"♙",
-  bK:"♚", bQ:"♛", bR:"♜", bB:"♝", bN:"♞", bP:"♟",
+
+// Adobe app configurations per piece type
+const APPS = {
+  K: { bg:'#001E36', fg:'#31A8FF', abbr:'Ps' }, // King   → Photoshop
+  Q: { bg:'#49021F', fg:'#FF3366', abbr:'Id' }, // Queen  → InDesign
+  R: { bg:'#B30012', fg:'#FFFFFF', abbr:'Ac' }, // Rook   → Acrobat
+  B: { bg:'#001C33', fg:'#74BCFD', abbr:'Lr' }, // Bishop → Lightroom
+  N: { bg:'#00005B', fg:'#9999FF', abbr:'Ae' }, // Knight → After Effects
+  P: { bg:'#FF9A00', fg:'#1A0A00', abbr:'Ai' }, // Pawn   → Illustrator
 };
+
+function makeSVG(type, isWhite) {
+  const app = APPS[type];
+  // Piece body colour: white pieces are light, black pieces are dark
+  const pc = isWhite ? '#f0f0f0' : '#1e1e1e';
+  const ps = isWhite ? '#b0b0b0' : '#505050';
+  const gem = app.fg; // gem accent uses the app's foreground colour
+
+  // Adobe app icon badge – same colours for both sides
+  const badge = `
+    <rect x="9" y="28" width="34" height="20" rx="6"
+          fill="${app.bg}" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+    <text x="26" y="42" text-anchor="middle"
+          font-family="'Helvetica Neue',Arial,sans-serif"
+          font-size="11" font-weight="bold" fill="${app.fg}" letter-spacing="1">${app.abbr}</text>`;
+
+  // Flat platform base
+  const base = `
+    <rect x="11" y="49" width="30" height="7" rx="3.5"
+          fill="${pc}" stroke="${ps}" stroke-width="1"/>
+    <ellipse cx="26" cy="57" rx="15" ry="3" fill="rgba(0,0,0,0.22)"/>`;
+
+  // Thin neck connecting badge to base
+  const neck = `<rect x="19" y="47" width="14" height="4" fill="${pc}"/>`;
+
+  let feat = '';
+
+  if (type === 'K') {
+    // Photoshop King – cross + 3-tooth crown
+    feat = `
+      <rect x="24" y="2" width="4" height="15" rx="2"   fill="${pc}" stroke="${ps}" stroke-width="0.5"/>
+      <rect x="18" y="7" width="16" height="4"  rx="2"   fill="${pc}" stroke="${ps}" stroke-width="0.5"/>
+      <rect x="11" y="17" width="30" height="12" rx="3"  fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="11" y="13" width="8"  height="7"  rx="2"  fill="${pc}" stroke="${ps}" stroke-width="0.5"/>
+      <rect x="22" y="13" width="8"  height="7"  rx="2"  fill="${pc}" stroke="${ps}" stroke-width="0.5"/>
+      <rect x="33" y="13" width="8"  height="7"  rx="2"  fill="${pc}" stroke="${ps}" stroke-width="0.5"/>
+      <circle cx="26" cy="2" r="2.5" fill="${gem}"/>`;
+
+  } else if (type === 'Q') {
+    // InDesign Queen – 3-orb crown with jewels
+    feat = `
+      <circle cx="13" cy="9"  r="4.5" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <circle cx="26" cy="5"  r="4.5" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <circle cx="39" cy="9"  r="4.5" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <polygon points="13,9 26,22 39,9 36,26 16,26"
+               fill="${pc}" stroke="${ps}" stroke-width="1" stroke-linejoin="round"/>
+      <rect x="11" y="24" width="30" height="6" rx="3" fill="${pc}" stroke="${ps}" stroke-width="0.8"/>
+      <circle cx="13" cy="9" r="2" fill="${gem}"/>
+      <circle cx="26" cy="5" r="2" fill="${gem}"/>
+      <circle cx="39" cy="9" r="2" fill="${gem}"/>`;
+
+  } else if (type === 'R') {
+    // Acrobat Rook – 3-battlement castle tower
+    feat = `
+      <rect x="11" y="16" width="30" height="14" rx="2" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="11" y="5"  width="8"  height="13" rx="2" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="22" y="5"  width="8"  height="13" rx="2" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="33" y="5"  width="8"  height="13" rx="2" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="21" y="18" width="10" height="11" rx="1" fill="${app.bg}" opacity="0.85"/>`;
+
+  } else if (type === 'B') {
+    // Lightroom Bishop – pointed mitre with horizontal band
+    feat = `
+      <path d="M26,2 L38,26 L14,26 Z"
+            fill="${pc}" stroke="${ps}" stroke-width="1" stroke-linejoin="round"/>
+      <line x1="16" y1="19" x2="36" y2="19" stroke="${gem}" stroke-width="2.5" opacity="0.75"/>
+      <circle cx="26" cy="26" r="4.5" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect x="14" y="26" width="24" height="5" rx="2.5" fill="${pc}" stroke="${ps}" stroke-width="0.8"/>`;
+
+  } else if (type === 'N') {
+    // After Effects Knight – stylised horse-head profile
+    feat = `
+      <path d="M18,28
+               C17,24 14,20 16,13
+               C18,7  22,3  28,3
+               C34,3  38,8  37,14
+               C36,19 32,21 30,23
+               C29,24 33,28 30,28 Z"
+            fill="${pc}" stroke="${ps}" stroke-width="1" stroke-linejoin="round"/>
+      <path d="M18,28 C16,28 14,26 16,24 L18,26"
+            fill="${pc}" stroke="${ps}" stroke-width="0.8"/>
+      <circle cx="31" cy="10" r="2.5" fill="${app.bg}"/>
+      <circle cx="31" cy="10" r="1.2" fill="${gem}"/>
+      <path d="M29,4 C27,8 25,13 25,18"
+            fill="none" stroke="${gem}" stroke-width="1.5" stroke-linecap="round" opacity="0.65"/>`;
+
+  } else if (type === 'P') {
+    // Illustrator Pawn – round head + shoulder spread
+    feat = `
+      <circle cx="26" cy="11" r="9" fill="${pc}" stroke="${ps}" stroke-width="1"/>
+      <rect   x="22"  y="19"  width="8" height="6" rx="1" fill="${pc}"/>
+      <rect   x="14"  y="23"  width="24" height="7" rx="4" fill="${pc}" stroke="${ps}" stroke-width="1"/>`;
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 60" width="52" height="56">
+    ${feat}
+    ${badge}
+    ${neck}
+    ${base}
+  </svg>`;
+}
 const START = [
   ["bR","bN","bB","bQ","bK","bB","bN","bR"],
   ["bP","bP","bP","bP","bP","bP","bP","bP"],
@@ -820,10 +932,10 @@ function render() {
     if (move) sq.classList.add(state.board[r][c] || move.ep ? "capture" : "move");
     const p = state.board[r][c];
     if (p) {
-      const span = document.createElement("span");
-      span.className = "piece " + (colorOf(p)==="w"?"white":"black");
-      span.textContent = GLYPH[p];
-      sq.appendChild(span);
+      const div = document.createElement("div");
+      div.className = "piece-svg";
+      div.innerHTML = makeSVG(typeOf(p), colorOf(p) === "w");
+      sq.appendChild(div);
     }
     sq.addEventListener("click", () => onSquareClick(r,c));
     boardEl.appendChild(sq);
@@ -935,9 +1047,7 @@ function askPromotion(color) {
     box.className = "promo-box";
     for (const t of ["Q","R","B","N"]) {
       const d = document.createElement("div");
-      d.textContent = GLYPH[color+t];
-      d.style.color = color === "w" ? "#fff" : "#111";
-      d.style.textShadow = color === "w" ? "0 0 2px #000, 1px 1px 0 #000" : "0 0 2px #fff";
+      d.innerHTML = makeSVG(t, color === "w");
       d.addEventListener("click", () => {
         document.body.removeChild(overlay);
         pendingPromo = null;
