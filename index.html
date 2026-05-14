@@ -2,36 +2,126 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Chess vs AI</title>
+<title>Adobe Chess</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
   :root {
-    --light: #f0d9b5;
-    --dark: #b58863;
-    --select: #f7ec74;
-    --move: #7ec850;
-    --capture: #d9534f;
-    --check: #ff6b6b;
+    --adobe-red:    #FA0F00;
+    --adobe-red-dk: #c00a00;
+    --adobe-red-glow: rgba(250,15,0,0.35);
+    --bg:           #1a1a1a;
+    --panel:        #242424;
+    --panel-2:      #2e2e2e;
+    --border:       #3a3a3a;
+    --text:         #f0f0f0;
+    --text-muted:   #888;
+    --light-sq:     #f2e4cf;
+    --dark-sq:      #7c1c1c;
+    --select-sq:    #ff9900;
+    --check-sq:     #FA0F00;
+    --coord:        #666;
   }
+
+  * { box-sizing: border-box; }
+
   body {
     margin: 0;
     min-height: 100vh;
-    background: #2b2b2b;
-    color: #eee;
-    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'Adobe Clean', system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
-    box-sizing: border-box;
+    padding: 24px 16px 40px;
   }
-  h1 { margin: 0 0 10px; font-weight: 500; }
-  #status { margin: 10px 0; min-height: 24px; font-size: 18px; }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    width: 100%;
+    max-width: 740px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+  }
+  .adobe-logo svg { display: block; }
+  .title-group h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .title-group .tagline {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 740px;
+  }
+
+  /* ── Board with coordinates ── */
+  .board-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .board-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .coords-h {
+    display: flex;
+    padding: 0 0 0 24px;
+    width: calc(8*64px + 24px);
+  }
+  .coords-h span, .coords-v span {
+    width: 64px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--coord);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    height: 20px;
+    line-height: 20px;
+    text-transform: lowercase;
+  }
+  .coords-v {
+    display: flex;
+    flex-direction: column;
+    width: 24px;
+  }
+  .coords-v span {
+    width: 24px;
+    height: 64px;
+    line-height: 64px;
+    text-align: center;
+  }
+
   #board {
     display: grid;
     grid-template-columns: repeat(8, 64px);
     grid-template-rows: repeat(8, 64px);
-    border: 4px solid #333;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    border: 2px solid var(--border);
+    box-shadow: 0 0 0 1px #111, 0 12px 40px rgba(0,0,0,0.7), 0 0 60px rgba(250,15,0,0.08);
+    border-radius: 2px;
+    overflow: hidden;
   }
   .sq {
     width: 64px;
@@ -39,80 +129,278 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 46px;
     cursor: pointer;
     user-select: none;
     position: relative;
     line-height: 1;
+    transition: filter 0.08s;
   }
-  .sq.light { background: var(--light); }
-  .sq.dark  { background: var(--dark); }
-  .sq.selected { background: var(--select) !important; }
-  .sq.check    { background: var(--check)  !important; }
+  .sq:hover { filter: brightness(1.12); }
+  .sq.light { background: var(--light-sq); }
+  .sq.dark  { background: var(--dark-sq); }
+  .sq.selected { background: var(--select-sq) !important; }
+  .sq.check    { background: var(--check-sq)  !important; }
+
   .sq.move::after {
     content: "";
     position: absolute;
-    width: 22px; height: 22px;
+    width: 20px; height: 20px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.25);
+    background: rgba(0,0,0,0.28);
+    pointer-events: none;
   }
   .sq.capture::after {
     content: "";
     position: absolute;
     inset: 4px;
-    border: 4px solid rgba(217,83,79,0.7);
+    border: 4px solid rgba(250,15,0,0.65);
     border-radius: 50%;
+    pointer-events: none;
   }
-  .piece.white { color: #fff; text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
-  .piece.black { color: #111; text-shadow: 0 0 2px #fff; }
-  #controls { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
-  button, select {
-    background: #444; color: #eee; border: 1px solid #666;
-    padding: 8px 14px; font-size: 14px; border-radius: 4px; cursor: pointer;
+
+  .piece.white {
+    color: #fff;
+    text-shadow: 0 0 3px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
   }
-  button:hover { background: #555; }
+  .piece.black {
+    color: #1a1a1a;
+    text-shadow: 0 0 2px rgba(255,255,255,0.4);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 180px;
+    flex: 1;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .panel-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  #status {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  #status.check-status { color: var(--adobe-red); }
+
+  /* ── Controls ── */
+  .controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .control-row {
+    display: flex;
+    gap: 8px;
+  }
+  button {
+    background: var(--adobe-red);
+    color: #fff;
+    border: none;
+    padding: 9px 0;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: background 0.15s, transform 0.08s;
+  }
+  button:hover  { background: #e00d00; }
+  button:active { transform: scale(0.97); }
+  button.secondary {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button.secondary:hover { background: #3a3a3a; }
+
+  .field-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  select:focus { outline: 1px solid var(--adobe-red); }
+
+  /* ── Move log ── */
   #log {
-    margin-top: 14px; width: 520px; max-height: 120px; overflow-y: auto;
-    background: #1e1e1e; border: 1px solid #444; border-radius: 4px;
-    padding: 8px; font-family: monospace; font-size: 13px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
+  #log:empty::before {
+    content: "No moves yet";
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  #log div {
+    padding: 3px 6px;
+    border-radius: 3px;
+    color: var(--text-muted);
+  }
+  #log div:nth-child(odd)  { background: rgba(255,255,255,0.03); }
+  #log div.white-move { color: #ddd; }
+  #log div.black-move { color: var(--adobe-red); }
+  #log::-webkit-scrollbar { width: 4px; }
+  #log::-webkit-scrollbar-track { background: transparent; }
+  #log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Promotion overlay ── */
   .promo-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center; z-index: 10;
   }
   .promo-box {
-    background: #f0d9b5; padding: 16px; border-radius: 8px; display: flex; gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(250,15,0,0.3);
+  }
+  .promo-box-title {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
   }
   .promo-box div {
-    width: 64px; height: 64px; font-size: 48px;
+    width: 64px; height: 64px; font-size: 44px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; background: #b58863; border-radius: 4px;
+    cursor: pointer;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: border-color 0.12s, background 0.12s;
   }
-  .promo-box div:hover { background: #c89970; }
+  .promo-box div:hover {
+    border-color: var(--adobe-red);
+    background: rgba(250,15,0,0.12);
+  }
 </style>
 </head>
 <body>
-  <h1>Chess vs AI</h1>
-  <div id="status">White to move</div>
-  <div id="board"></div>
-  <div id="controls">
-    <button id="newGame">New Game</button>
-    <button id="undo">Undo</button>
-    <label>AI depth:
-      <select id="depth">
-        <option value="1">1 (easy)</option>
-        <option value="2" selected>2</option>
-        <option value="3">3 (slow)</option>
-      </select>
-    </label>
-    <label>You play:
-      <select id="side">
-        <option value="w" selected>White</option>
-        <option value="b">Black</option>
-      </select>
-    </label>
+
+  <header>
+    <div class="adobe-logo">
+      <svg width="44" height="38" viewBox="0 0 100 87" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="0,87 33,0 66,87" fill="#FA0F00"/>
+        <polygon points="34,87 67,0 100,87" fill="#FA0F00" opacity="0.72"/>
+        <polygon points="34,87 66,87 50,53" fill="#1a1a1a"/>
+      </svg>
+    </div>
+    <div class="title-group">
+      <h1>Adobe Chess</h1>
+      <span class="tagline">Move with intention</span>
+    </div>
+  </header>
+
+  <div class="app">
+
+    <!-- Board + coordinates -->
+    <div class="board-wrap">
+      <div class="coords-h">
+        <span>a</span><span>b</span><span>c</span><span>d</span>
+        <span>e</span><span>f</span><span>g</span><span>h</span>
+      </div>
+      <div class="board-row">
+        <div class="coords-v">
+          <span>8</span><span>7</span><span>6</span><span>5</span>
+          <span>4</span><span>3</span><span>2</span><span>1</span>
+        </div>
+        <div id="board"></div>
+      </div>
+      <div class="coords-h">
+        <span>a</span><span>b</span><span>c</span><span>d</span>
+        <span>e</span><span>f</span><span>g</span><span>h</span>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <div class="panel">
+        <div class="panel-label">Status</div>
+        <div id="status">White to move</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">Controls</div>
+        <div class="controls-grid">
+          <div class="control-row">
+            <button id="newGame">New Game</button>
+            <button id="undo" class="secondary">Undo</button>
+          </div>
+          <div>
+            <div class="field-label">You play</div>
+            <select id="side">
+              <option value="w" selected>White</option>
+              <option value="b">Black</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-label">AI strength</div>
+            <select id="depth">
+              <option value="1">Easy</option>
+              <option value="2" selected>Medium</option>
+              <option value="3">Hard (slow)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1">
+        <div class="panel-label">Move History</div>
+        <div id="log"></div>
+      </div>
+
+    </div>
   </div>
-  <div id="log"></div>
 
 <script>
 // ---------- Board representation ----------
@@ -569,8 +857,10 @@ function logMove(m, piece) {
   if (m.promo) txt += "=" + m.promo;
   if (m.castle === "K") txt = "O-O";
   if (m.castle === "Q") txt = "O-O-O";
+  const col = colorOf(piece);
   const div = document.createElement("div");
-  div.textContent = (colorOf(piece)==="w"?"W: ":"B: ") + txt;
+  div.className = col === "w" ? "white-move" : "black-move";
+  div.textContent = (col === "w" ? "▷ " : "◁ ") + txt;
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
 }
@@ -655,7 +945,15 @@ function askPromotion(color) {
       });
       box.appendChild(d);
     }
-    overlay.appendChild(box);
+    const title = document.createElement("div");
+    title.className = "promo-box-title";
+    title.style.gridColumn = "1/-1";
+    title.textContent = "Promote pawn";
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "display:flex;flex-direction:column;gap:10px;";
+    wrapper.appendChild(title);
+    wrapper.appendChild(box);
+    overlay.appendChild(wrapper);
     document.body.appendChild(overlay);
     pendingPromo = overlay;
   });
